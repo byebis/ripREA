@@ -92,7 +92,7 @@ STOP: UI→IPC→native FTS. Answer complete.
 Time: <1 minute, 3 calls, ~100 lines read
 ```
 
-**Impact (illustrative scenario): same answer, 5× faster, 70× less code read.** The measured, reproducible run - three real tasks on the gh CLI with committed output and timings - is [WALKTHROUGH.md](WALKTHROUGH.md).
+**Impact (illustrative scenario): same answer, 5× faster, 70× less code read.** The measured, reproducible run - four tasks on real binaries (gh CLI + a Joplin Electron security audit) with committed output and timings - is [WALKTHROUGH.md](WALKTHROUGH.md).
 
 ## When to use ripREA vs leanrea
 
@@ -141,7 +141,7 @@ The agent will:
 - **[QUICKSTART.md](QUICKSTART.md)** - Get started in 60 seconds
 - **[SKILL.md](SKILL.md)** - Complete strategy guide (the actual skill file)
 - **[EXAMPLES.md](EXAMPLES.md)** - 6 strategy walkthroughs (illustrative)
-- **[WALKTHROUGH.md](WALKTHROUGH.md)** - Measured run on the gh CLI: real output, timings, benchmark
+- **[WALKTHROUGH.md](WALKTHROUGH.md)** - Measured run on real binaries (gh CLI, Joplin): output, timings, benchmark
 - **[COMPARISON.md](COMPARISON.md)** - Side-by-side: with vs without ripREA
 - **[VALUE.md](VALUE.md)** - Why ripREA exists and when it matters most
 

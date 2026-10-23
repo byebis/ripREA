@@ -181,7 +181,7 @@ ripREA strategy + leanrea tools = best results
 
 ## Next Steps
 
-- Read [WALKTHROUGH.md](WALKTHROUGH.md) for a measured, reproducible run on the gh CLI
+- Read [WALKTHROUGH.md](WALKTHROUGH.md) for a measured, reproducible run on real binaries (gh CLI + Joplin)
 - Read [EXAMPLES.md](EXAMPLES.md) for detailed walkthroughs
 - See [COMPARISON.md](COMPARISON.md) for before/after analysis  
 - Check [VALUE.md](VALUE.md) for understanding the benefits

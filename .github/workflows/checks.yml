@@ -1,0 +1,75 @@
+name: checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  skill-budget-and-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tokenizer
+        run: pip install tiktoken
+
+      # Budget guard for the skill's core pitch: it must stay small.
+      # Measured 2026-10-23: 10933 bytes / 2831 tokens (tiktoken cl100k).
+      # Limits leave ~20% headroom for legitimate edits, then fail loudly.
+      - name: SKILL.md size and token budget
+        env:
+          MAX_BYTES: "13000"
+          MAX_TOKENS: "3300"
+        run: |
+          python - <<'PY'
+          import os, sys, tiktoken
+
+          limit_b = int(os.environ["MAX_BYTES"])
+          limit_t = int(os.environ["MAX_TOKENS"])
+          data = open("SKILL.md", "rb").read()
+          tokens = len(tiktoken.get_encoding("cl100k_base").encode(data.decode("utf-8")))
+
+          print(f"SKILL.md: {len(data)} bytes (limit {limit_b}), {tokens} tokens (limit {limit_t})")
+          ok = True
+          if len(data) > limit_b:
+              print(f"::error::SKILL.md exceeds the byte budget: {len(data)} > {limit_b} (+{len(data) - limit_b})")
+              ok = False
+          if tokens > limit_t:
+              print(f"::error::SKILL.md exceeds the token budget: {tokens} > {limit_t} (+{tokens - limit_t})")
+              ok = False
+          sys.exit(0 if ok else 1)
+          PY
+
+      - name: Relative links resolve
+        run: |
+          python - <<'PY'
+          import pathlib, re, sys
+
+          failures = []
+          checked = 0
+          for md in pathlib.Path(".").glob("**/*.md"):
+              if any(part.startswith(".") for part in md.parts[:-1]):
+                  continue
+              body = md.read_text(encoding="utf-8")
+              for target in re.findall(r"\]\(([^)\s]+)\)", body):
+                  if target.startswith(("http://", "https://", "#", "mailto:")):
+                      continue
+                  path = target.split("#", 1)[0]
+                  if not path:
+                      continue
+                  checked += 1
+                  if not (md.parent / path).exists():
+                      failures.append(f"{md}: broken relative link -> {target}")
+
+          for failure in failures:
+              print(f"::error::{failure}")
+          print(f"checked {checked} relative link(s), {len(failures)} broken")
+          sys.exit(1 if failures else 0)
+          PY
