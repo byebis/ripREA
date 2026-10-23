@@ -1,6 +1,6 @@
 ---
 name: ripREA
-description: Decision layer for leanrea - knows WHEN to use which technique based on your goal. Adds goal-first routing, progressive depth strategy, and stop conditions. Load WITH leanrea for full tool coverage.
+description: WHEN to use which reverse-engineering technique, based on your goal. Use when the user asks how an app or binary works internally, why something crashes or fails, wants to clone or rebuild a feature, audit an app's security, compare two versions, or extract versions/dependencies/metadata. Goal routing, progressive depth ladders, stop conditions. Decision layer for leanrea - load WITH leanrea for full tool coverage.
 ---
 
 # ripREA: Strategic layer for reverse engineering
@@ -18,7 +18,20 @@ description: Decision layer for leanrea - knows WHEN to use which technique base
 | **COMPARE** "v1→v2 diff?" | Capability delta | Changed symbols only | Delta documented |
 | **EXTRACT** "Versions?" | Metadata only | No code | All versions found |
 
-**Route:** Match goal → apply strategy below. Unknown goal → use FEATURE + ask clarification.
+**Route:** Match goal → apply strategy below. Multiple goals in one question → split into sub-investigations, cheapest first (EXTRACT/COMPARE before FEATURE/DEBUG), each with its own stop condition. Unknown goal → use FEATURE + ask clarification.
+
+**Report contract:** end every investigation with its goal's deliverable below, every claim marked **seen** (cite file/line or command output) / **inferred** (state the reasoning) / **unknown** (admit it):
+
+| Goal | Deliverable |
+|------|-------------|
+| FEATURE | Flow trace API/UI → effect, one hop per line, cited |
+| DEBUG | Trigger → root-cause chain, minimal fix, repro steps |
+| REBUILD | Behavior contract (inputs, edge cases, outputs) + parity checks |
+| SECURITY | Findings ranked by severity, each with a concrete trigger path → impact |
+| COMPARE | Delta table: added / removed / changed (symbol or file) |
+| EXTRACT | Metadata table, command used per field |
+
+Never label a SECURITY finding **confirmed** without a concrete trigger path - mark it **inferred**.
 
 ---
 
@@ -52,6 +65,7 @@ description: Decision layer for leanrea - knows WHEN to use which technique base
 - Crash with stack trace? → Start Step 2 at crash point, check null/bounds
 - Wrong output, no error? → Step 2 at output function, diff actual vs expected
 - Silent failure? → Skip static, go dynamic (lldb/frida for call chain)
+- Can't execute the target (iOS, firmware, malware, no build)? → Skip REPRODUCE: infer the trigger from crash logs/strings/paths, validate statically, report "not reproduced"
 
 **Example:** Settings crash on tap
 ```
@@ -150,6 +164,18 @@ CONCLUSION: Added PDF export via wkhtmltopdf. Other 500+ functions untouched.
 - Strings/symbols exhausted → disassembly
 - Disassembly unreadable → decompiler (Ghidra/IDA)
 - Static stuck → dynamic (lldb/frida/dtrace)
+
+**Obfuscation escalation** (first that applies):
+- Minified JS → sourceMappingURL → `jq .sourcesContent`; else `npx prettier --parser babel` (never cat minified)
+- Stripped native → what's left is still readable: `nm -u`, `otool -L`, `go version -m`, `strings`; then Ghidra auto-analysis before manual reading
+- Packed/encrypted binary → identify packer (die/BinInfo) → dump memory after unpacking via lldb/frida
+- Obfuscated strings → find the decrypt routine, break there, dump decrypted values
+
+**Safety & scope:**
+- SECURITY on software you don't own → confirm authorization first (ask once); unclear scope → passive static analysis only, no exploitation attempts
+- Dynamic analysis on copies only (VM/snapshot/throwaway container): never execute an untrusted binary on the host, never attach a debugger to a production process
+- REBUILD stays black-box: reimplement behavior; never copy code, assets, strings or product names. The selective peek names an algorithm to research - it is not code to transplant
+- L4 (disassembly/decompile) costs ~10× L1-L3 → confirm with the user before going there unless they explicitly asked for depth
 
 **Efficiency (from leanrea):**
 - Work on copy (`cp -c` instant on APFS)

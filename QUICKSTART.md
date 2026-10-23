@@ -7,10 +7,10 @@ Get started with ripREA in 60 seconds.
 ```sh
 # Recommended: Install both
 npx skills add aicodeking/leanrea    # Tools
-npx skills add <your-org>/ripREA     # Strategy
+npx skills add byebis/ripREA         # Strategy
 
 # Or manual
-git clone <repo>
+git clone https://github.com/byebis/ripREA
 mkdir -p ~/.claude/skills && cp -R ripREA ~/.claude/skills/
 ```
 
@@ -181,6 +181,7 @@ ripREA strategy + leanrea tools = best results
 
 ## Next Steps
 
+- Read [WALKTHROUGH.md](WALKTHROUGH.md) for a measured, reproducible run on the gh CLI
 - Read [EXAMPLES.md](EXAMPLES.md) for detailed walkthroughs
 - See [COMPARISON.md](COMPARISON.md) for before/after analysis  
 - Check [VALUE.md](VALUE.md) for understanding the benefits
@@ -189,7 +190,7 @@ ripREA strategy + leanrea tools = best results
 ## TL;DR
 
 ```
-1. Install: npx skills add ripREA
+1. Install: npx skills add byebis/ripREA
 2. Use: /ripREA <your question>
 3. Agent: identifies goal → applies strategy → stops at right depth
 4. You: get answer faster with less waste

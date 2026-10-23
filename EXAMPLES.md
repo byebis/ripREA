@@ -2,6 +2,8 @@
 
 Practical examples showing how ripREA's goal-first routing changes investigation strategy.
 
+> These six walkthroughs are **illustrative composites** written to show the decision process, not recorded sessions. A measured, reproducible run with committed output and timings lives in [WALKTHROUGH.md](WALKTHROUGH.md).
+
 ---
 
 ## Example 1: Feature Investigation
@@ -299,6 +301,8 @@ STOP: Metadata extraction complete. No code reading needed.
 **Time:** 5 seconds  
 **Depth:** EXTRACT (metadata only, never read code)
 
+> A fully reproducible, measured version of this exact task (real gh binaries, committed output, timings): [WALKTHROUGH.md](WALKTHROUGH.md).
+
 ---
 
 ## Key Patterns Across Examples
@@ -320,9 +324,9 @@ STOP: Metadata extraction complete. No code reading needed.
 - **Example 6:** Didn't read any code
 
 ### Time savings
-Average investigation time **with ripREA:** 1-3 minutes  
-Typical time **without strategy:** 5-15 minutes  
-**Speedup:** 3-5× faster to answer
+Investigation phase with ripREA across these six examples: **5 s - 3 min** (Example 4's ~10 min includes writing the clone)  
+Without strategy: **5-15 min** in the composite before/after blocks of [COMPARISON.md](COMPARISON.md) and [VALUE.md](VALUE.md)  
+**Nature of these numbers:** illustrative, derived from each scenario above - not measured. The measured run with committed timings: [WALKTHROUGH.md](WALKTHROUGH.md)
 
 ### The ripREA advantage
 

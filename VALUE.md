@@ -97,6 +97,8 @@ This replaces guesswork with clear decision paths.
 
 ## Real Impact: Side-by-side
 
+*Illustrative composite with internally consistent arithmetic - not a measured benchmark. Measured runs: [WALKTHROUGH.md](WALKTHROUGH.md).*
+
 ### Scenario: "Why does my Electron app crash when opening settings?"
 
 #### Without ripREA
@@ -139,29 +141,26 @@ Result: ✓ Found cause efficiently
 
 ---
 
-## The Size Miracle
+## The Size Budget
+
+Measured 2026-10-23 (`wc -c -w -l` + tiktoken cl100k):
 
 ```
-leanrea:  8.3 KB (1294 words, 57 lines)
-ripREA:   8.25 KB (1263 words, 146 lines)
+leanrea:  8374 B  (1294 words,  66 lines, ~2656 tokens)
+ripREA:   10933 B (1637 words, 214 lines, ~2831 tokens)
+both:     19307 B (2931 words, 280 lines, ~5487 tokens)
 ```
 
-**How is ripREA smaller?**
-
-1. Removed tool duplication (points to leanrea instead)
-2. Condensed examples (inline, not prose)
-3. Dense formatting (tables, not paragraphs)
-4. Focused on decisions, not explanations
-
-**ripREA includes:**
-- 6 goal type strategies
-- 4-level depth ladder with stop conditions  
+**What ripREA buys with ~2.8k tokens:**
+- 6 goal type strategies, each with a depth ladder and stop conditions
+- Report contract: deliverable per goal, claims marked seen/inferred/unknown
 - Branch logic for common scenarios
-- Quick tool reference (10 most common)
-- Tactical rules (when to stop/go/switch)
+- Safety & scope rules (authorization check, sandboxed dynamic analysis, clean-room rebuild, L4 budget confirmation)
+- Obfuscation escalation ladder
+- Quick tool reference (fallback when leanrea is absent)
 - Meta-adaptation guidance
 
-**All at the same size as the tool catalog alone.**
+**Cost when used as recommended (both skills): ~5.5k tokens, about 2.1× leanrea alone.** ripREA is not free - it is cheap relative to one avoided over-investigation: reading 7000 lines of code costs tens of thousands of tokens, an order of magnitude more than the strategy that prevents it.
 
 ---
 
@@ -237,6 +236,8 @@ Report results
 
 ## The Compound Effect
 
+*Illustrative arithmetic from the scenarios above, not a measured benchmark (see [WALKTHROUGH.md](WALKTHROUGH.md)):*
+
 **Single task:** ripREA saves 2-10 minutes  
 **Daily usage:** 10 tasks × 5 min avg = 50 minutes saved  
 **Weekly:** 4 hours saved  
@@ -253,7 +254,7 @@ Report results
 
 ```sh
 npx skills add aicodeking/leanrea    # Tool catalog
-npx skills add <org>/ripREA          # Strategic layer
+npx skills add byebis/ripREA         # Strategic layer
 ```
 
 **Division of labor:**
@@ -270,12 +271,13 @@ Alone:
 
 ## The Bottom Line
 
-**Same size. More value. Zero tradeoff.**
+**~2.8k tokens of strategy. Measured value. No bloat.**
 
-ripREA proves you can add strategic guidance without bloat by:
+ripREA adds strategic guidance without much bloat by:
 1. Identifying what actually matters (goal → depth → stop)
 2. Removing duplication (tool catalog stays in leanrea)
 3. Optimizing format (tables and examples, not prose)
+4. Keeping the price honest: sizes and token counts above are measured, and the measured run lives in [WALKTHROUGH.md](WALKTHROUGH.md)
 
 The result: **A decision layer that makes leanrea's tools actionable in ambiguous scenarios.**
 

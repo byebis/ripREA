@@ -2,7 +2,7 @@
 
 **Context-aware reverse engineering: the right tool at the right depth at the right time.**
 
-ripREA extends [leanrea](https://github.com/aicodeking/leanrea) with strategic guidance at **zero size cost** (8.25KB vs leanrea's 8.3KB). It answers the question leanrea doesn't: **"When do I use which technique?"**
+ripREA extends [leanrea](https://github.com/aicodeking/leanrea) with strategic guidance: goal routing, depth ladders, stop conditions, a report contract and safety rails - **~2.8k tokens** on top of leanrea's ~2.7k (**~5.5k combined**, measured; see [COMPARISON.md](COMPARISON.md)). It answers the question leanrea doesn't: **"When do I use which technique?"**
 
 ## The problem with leanrea
 
@@ -47,6 +47,10 @@ Level 4: Deep (disassembly, decompile)   → only if Levels 1-3 insufficient
 - ❌ Full code review when only symbols changed
 - ❌ Rebuilding internals when black-box behavior is enough
 
+### 5. Report contract & safety rails
+- Every answer ends with its goal's **deliverable** (flow trace, delta table, threat list...), each claim marked **seen / inferred / unknown**
+- Safety rules: confirm authorization before SECURITY work, run dynamic analysis only on copies in a VM/snapshot, keep REBUILD black-box (never copy code/assets/names), and treat L4 disassembly as ~10× cost that needs user confirmation
+
 ## Comparison
 
 |  | leanrea | ripREA |
@@ -56,9 +60,9 @@ Level 4: Deep (disassembly, decompile)   → only if Levels 1-3 insufficient
 | **Strategic guidance** | ❌ Tool catalog only | ✅ Goal → Strategy → Depth |
 | **Decision support** | ❌ Agent must guess | ✅ Explicit when/stop rules |
 | **Context awareness** | ❌ One-size-fits-all | ✅ Tailored by goal type |
-| **Skill size** | 8.3 KB | 8.25 KB (effectively same) |
+| **Size (measured 2026-10-23)** | 8.2 KB / ~2.7k tokens | 10.7 KB / ~2.8k tokens |
 
-ripREA is **leanrea + strategic layer at same size**. All tools remain accessible. We add the **decision logic** that was missing.
+ripREA is **leanrea + a decision layer paid for in context**: loading both (the recommended setup) costs ~5.5k tokens vs ~2.7k for leanrea alone. All tools remain accessible; ripREA adds the **decision logic** that was missing. Reproduce the numbers with `wc -c -w -l SKILL.md` and any tokenizer - see [COMPARISON.md](COMPARISON.md).
 
 ## Example: Before and After
 
@@ -88,7 +92,7 @@ STOP: UI→IPC→native FTS. Answer complete.
 Time: <1 minute, 3 calls, ~100 lines read
 ```
 
-**Impact: Same accuracy, 5× faster, 70× less code read.**
+**Impact (illustrative scenario): same answer, 5× faster, 70× less code read.** The measured, reproducible run - three real tasks on the gh CLI with committed output and timings - is [WALKTHROUGH.md](WALKTHROUGH.md).
 
 ## When to use ripREA vs leanrea
 
@@ -108,14 +112,14 @@ Time: <1 minute, 3 calls, ~100 lines read
 ### Recommended: Use with leanrea
 ```sh
 npx skills add aicodeking/leanrea
-npx skills add <your-org>/ripREA
+npx skills add byebis/ripREA
 ```
 
 This gives you full tool coverage (leanrea) + strategic layer (ripREA).
 
 ### Standalone (works, but limited tool reference)
 ```sh
-git clone <this-repo>
+git clone https://github.com/byebis/ripREA
 mkdir -p ~/.claude/skills && cp -R ripREA ~/.claude/skills/
 ```
 
@@ -136,7 +140,8 @@ The agent will:
 
 - **[QUICKSTART.md](QUICKSTART.md)** - Get started in 60 seconds
 - **[SKILL.md](SKILL.md)** - Complete strategy guide (the actual skill file)
-- **[EXAMPLES.md](EXAMPLES.md)** - 6 detailed real-world walkthroughs
+- **[EXAMPLES.md](EXAMPLES.md)** - 6 strategy walkthroughs (illustrative)
+- **[WALKTHROUGH.md](WALKTHROUGH.md)** - Measured run on the gh CLI: real output, timings, benchmark
 - **[COMPARISON.md](COMPARISON.md)** - Side-by-side: with vs without ripREA
 - **[VALUE.md](VALUE.md)** - Why ripREA exists and when it matters most
 

@@ -2,20 +2,24 @@
 
 ## Size & Overhead
 
-| Metric | leanrea | ripREA |
-|--------|---------|--------|
-| File size | 8.3 KB | 8.25 KB |
-| Words | 1294 | 1263 |
-| Lines | 57 | 146 |
-| Tool coverage | Full catalog | Quick ref + points to leanrea |
-| Strategic guidance | ❌ None | ✅ 6 goal types with depth ladders |
-| Context overhead | ~3.5k tokens | ~3.5k tokens (same) |
+| Metric | leanrea | ripREA | Both (recommended setup) |
+|--------|---------|--------|--------------------------|
+| File size (SKILL.md) | 8374 B (8.2 KB) | 10933 B (10.7 KB) | 19307 B (18.9 KB) |
+| Words | 1294 | 1637 | 2931 |
+| Lines | 66 | 214 | 280 |
+| Tokens (tiktoken cl100k) | 2656 | 2831 | 5487 |
+| Tool coverage | Full catalog | Quick ref + points to leanrea | Full catalog + decision layer |
+| Strategic guidance | ❌ None | ✅ 6 goal types, depth ladders, report contract, safety rules | same |
 
-**Verdict:** ripREA adds strategic layer at **zero size cost** (actually 50 bytes smaller).
+*Measured 2026-10-23 with `wc -c -w -l` and tiktoken cl100k (Claude's tokenizer differs slightly); leanrea read from `aicodeking/leanrea@main`.*
+
+**Verdict:** ripREA is **not free**: the recommended setup costs ~5.5k tokens vs ~2.7k for leanrea alone (~2.1× context). The honest claim is not "zero cost" but "cheap relative to one avoided over-investigation" - a single discarded 7000-line read dwarfs 2.8k tokens of strategy. The tasks below show where that budget pays back.
 
 ---
 
 ## Real-world task comparison
+
+**Caveat:** the three tasks are illustrative composites - each block's turn counts, minutes and line counts are internally consistent with the arithmetic shown, but they are not measured runs. The measured run with committed output and timings is [WALKTHROUGH.md](WALKTHROUGH.md).
 
 ### Task 1: "How does the export feature work in Electron app X?"
 
@@ -48,7 +52,7 @@ Lines read: ~150
 Result: ✓ Correct and efficient
 ```
 
-**Improvement: 63% fewer turns, 90% less reading, 5.3× faster**
+**Improvement: 63% fewer turns, 98% less reading, 5.3× faster**
 
 ---
 
@@ -157,7 +161,7 @@ Result: ✓ Working clone without reading their code
 
 - All tools available (ripREA includes quick ref, points to leanrea for full catalog)
 - Speed patterns (batch probes, slice minified, rg -uu, etc.)
-- File size and context overhead (~8KB, ~3.5k tokens)
+- File size and context overhead stay modest per skill (~8-11 KB, ~2.7-2.8k tokens each; ~5.5k loaded together - measured, see the table above)
 
 ### The mental model shift
 
