@@ -1,214 +1,166 @@
 ---
 name: ripREA
-description: WHEN to use which reverse-engineering technique, based on your goal. Use when the user asks how an app or binary works internally, why something crashes or fails, wants to clone or rebuild a feature, audit an app's security, compare two versions, or extract versions/dependencies/metadata. Goal routing, progressive depth ladders, stop conditions. Decision layer for leanrea - load WITH leanrea for full tool coverage.
+description: Reverse engineer shipped software end to end - goal routing plus the fastest local CLI technique per target, no MCP. Covers Electron/JS bundles, Mach-O/ELF/PE, Go/Rust/.NET/Flutter/WASM, APKs, SQLite, pcaps, firmware and websites. Use when the user asks how an app or binary works internally, why it crashes or fails, wants to clone or rebuild a feature, audit an app's security, compare two versions, or extract versions/dependencies/metadata.
 ---
 
-# ripREA: Strategic layer for reverse engineering
+# ripREA: goal → tool → depth
 
-**Extends leanrea with:** Goal routing → Depth strategy → Stop conditions
+One file: what to investigate, which command answers it, and when to stop. Identify the goal first, then run that strategy's cheapest step; commands for every target are in the router.
 
-## Goal-first routing (identify BEFORE tools)
+## Rules
 
-| Goal | Need | Max depth | Stop when |
-|------|------|-----------|-----------|
-| **FEATURE** "How does X work?" | Data flow UI→storage | Function boundaries | Trace complete |
-| **DEBUG** "Why fails?" | Error path + state | Root cause | Reproducible explanation |
-| **REBUILD** "Clone X" | API surface + behavior | Black-box equiv | Functional parity |
-| **SECURITY** "Risks?" | Attack surface + boundaries | Vuln patterns | Threat model done |
-| **COMPARE** "v1→v2 diff?" | Capability delta | Changed symbols only | Delta documented |
-| **EXTRACT** "Versions?" | Metadata only | No code | All versions found |
+- Work on a copy (`cp -c` on APFS is instant). One dir per target under `$TMPDIR/re/<name>`, reused.
+- Route on `file -b T` and the magic bytes, then the cheapest inventory, then code.
+- Bundlers hide code (`.webpack/`, `.vite/`) and `rg` skips hidden/ignored files: search extracted trees with `rg -uu`.
+- Never `cat` a big or minified file - slice it: `rg -o '.{0,200}NEEDLE.{0,200}' F | head`. Dump a disassembly once to a file, then grep the file.
+- Batch independent probes into ONE call separated by `;` with `echo '--- name'` markers (quoted: zsh expands a bare `==x`); cap every output with `head` or `-m`.
+- Evidence over vibes: mark each claim **seen** (file:offset, symbol, string or command output) or **inferred** (with the reasoning). What you did not find is **unknown**, not "absent". Static reading is not observed execution.
+- Turns cost more than bytes: 2-4 tool calls is the target. A missing tool is not a blocker - use the row's fallback, or install it if the user allows.
 
-**Route:** Match goal → apply strategy below. Multiple goals in one question → split into sub-investigations, cheapest first (EXTRACT/COMPARE before FEATURE/DEBUG), each with its own stop condition. Unknown goal → use FEATURE + ask clarification.
+## Goal routing (decide before touching a tool)
 
-**Report contract:** end every investigation with its goal's deliverable below, every claim marked **seen** (cite file/line or command output) / **inferred** (state the reasoning) / **unknown** (admit it):
+| Goal | Question | Deliverable | Stop when |
+|------|----------|-------------|-----------|
+| **FEATURE** | How does X work? | Flow trace UI/API → effect, one hop per line, cited | Every hop is evidenced |
+| **DEBUG** | Why does X fail? | Trigger → root-cause chain, minimal fix, repro steps | Cause explains the symptom |
+| **REBUILD** | Clone X | Behavior contract (inputs, edge cases, outputs) + parity checks | Functional parity |
+| **SECURITY** | What are the risks? | Findings ranked by severity, each with a trigger path → impact | Threat model done |
+| **COMPARE** | v1 → v2? | Delta table: added / removed / changed | Delta documented |
+| **EXTRACT** | Versions, deps? | Metadata table + the command used per field | All fields found |
 
-| Goal | Deliverable |
-|------|-------------|
-| FEATURE | Flow trace API/UI → effect, one hop per line, cited |
-| DEBUG | Trigger → root-cause chain, minimal fix, repro steps |
-| REBUILD | Behavior contract (inputs, edge cases, outputs) + parity checks |
-| SECURITY | Findings ranked by severity, each with a concrete trigger path → impact |
-| COMPARE | Delta table: added / removed / changed (symbol or file) |
-| EXTRACT | Metadata table, command used per field |
+End each investigation with its goal's deliverable, every claim marked per the rules. Multiple goals in one request → split into sub-investigations, cheapest first (EXTRACT/COMPARE before FEATURE/DEBUG), each with its own stop condition. Unknown goal → treat as FEATURE and ask one clarifying question.
 
-Never label a SECURITY finding **confirmed** without a concrete trigger path - mark it **inferred**.
+## Depth ladder (shared)
 
----
+`L1 SURFACE` strings, exports, imports, entry points (~1 call, seconds) → `L2 BOUNDARIES` component and data-flow map (~1-2 calls) → `L3 LOGIC` implementation read, pseudocode (minutes) → `L4 DEEP` disassembly/decompile (~10× the cost of L1-L3: confirm with the user unless they explicitly asked for that depth).
 
-## Strategies by goal
+Climb only while the deliverable is incomplete. Three calls with no progress means the wrong layer or the wrong tool: re-route, do not push. Most answers stop at L1/L2; L4 exists for native or obfuscated code where L3 cannot answer. Examples below are illustrative.
 
-### FEATURE: Trace user action → effect
+## Strategies
 
-**Depth ladder** (stop when answered):
-1. **SURFACE** (1 call, 10s): `rg -uu 'featureName'` → entry points (handlers/IPC/API)
-2. **BOUNDARIES** (1-2 calls, 30s): Trace handler→model→storage → component map
-3. **LOGIC** (2-3 calls, 2-5m): Read implementations → pseudocode
-4. **DEEP** (only if stuck): Disassemble/decompile native
+### FEATURE - trace user action to effect
 
-**When to stop:**
-- L1: Just checking if feature exists or what it's called
-- L2: Mapping components/communication ("what talks to what?")
-- L3: Need to rebuild logic or understand complex behavior
-- L4: ONLY if native+obfuscated AND L3 insufficient
+1. **L1**: `rg -uu 'name'` (or the router row) → handler, IPC channel, API endpoint
+2. **L2**: trace handler → model → storage; one hop per line
+3. **L3**: read the implementation only for hops you still cannot explain
+4. **L4**: only when a native boundary blocks the trace
 
-**Example:** Search in Notion: L1 finds `'search:query'` IPC → L2 traces handler to SearchIndex.node → L3 sees `fulltext_search` export → STOP. We know UI→IPC→native FTS without disassembling.
+STOP: the chain from trigger to effect is cited end to end. "Calls closed-source lib X" is a valid hop.
+*Ex: Notion search - L1 finds the `search:query` IPC channel, L2 traces it to `SearchIndex.node`, L3 sees the `fulltext_search` export. Answer complete without disassembling.*
 
-### DEBUG: Find divergence point
+### DEBUG - bisect symptom to cause
 
-**Bisect symptom→cause:**
-1. **REPRODUCE**: Confirm trigger, observe actual vs expected
-2. **TRACE BACK** (1-2 calls): `rg 'error string'` → function that outputs symptom
-3. **INSPECT STATE** (1 call): Read function → find violated condition
-4. **TRACE UPSTREAM** (1-2 calls): Follow data flow back → root cause
+1. **REPRODUCE**: confirm the trigger, record actual vs expected
+2. **TRACE BACK**: `rg 'error string'` → the function that emits the symptom
+3. **INSPECT STATE**: read it, find the violated condition
+4. **TRACE UPSTREAM**: follow the data or property back to the root cause
 
-**When to branch:**
-- Crash with stack trace? → Start Step 2 at crash point, check null/bounds
-- Wrong output, no error? → Step 2 at output function, diff actual vs expected
-- Silent failure? → Skip static, go dynamic (lldb/frida for call chain)
-- Can't execute the target (iOS, firmware, malware, no build)? → Skip REPRODUCE: infer the trigger from crash logs/strings/paths, validate statically, report "not reproduced"
+Branches: crash with a stack → start at the crash frame, check null/bounds; wrong output, no error → start at the output function and diff; silent failure → skip static, go dynamic; cannot execute the target (iOS, firmware, malware, no build) → skip REPRODUCE, infer the trigger from logs/paths/strings, validate statically, report "not reproduced".
+*Ex: settings crash - crash log → null deref in `loadPreferences` → `prefsCache` is set only in `viewDidLoad` when logged in → root cause for logged-out users.*
 
-**Example:** Settings crash on tap
+### REBUILD - black-box contract, not internals
+
+1. **API SURFACE**: UI, network and IPC probes → input/output shapes
+2. **BEHAVIOR MATRIX**: probe edge cases by hand → truth table
+3. **SELECTIVE PEEK** (only for a real unknown): identify the algorithm or endpoint name, then research the algorithm elsewhere
+4. **IMPLEMENT + VERIFY**: write your own, test parity on the same inputs
+
+Go deeper only when: simple CRUD/REST → steps 1-2 suffice; complex algorithm → step 3 names it; proprietary protocol or crypto → deeper packet inspection, maybe disassembly.
+*Ex: Slack emoji picker - the picker hits `GET /emoji.list`, typing `:smi` prefix-filters rather than fuzzy-matches, custom emoji differ by a category field → fetch + filter + grid reproduces the behavior.*
+
+### SECURITY - perimeter, boundaries, impact
+
+1. **SURFACE MAP**: `rg` network, IPC, file, subprocess, eval, shell → entry points
+2. **TRUST BOUNDARIES**: trace each entry to its sink, check validation
+3. **CAPABILITY**: entitlements, permissions, dangerous APIs → blast radius
+4. **PATTERN SCAN**: read the risky paths (SQLi, XSS, overflow, path traversal)
+
+Priorities: sandboxed app → entitlements first; parses untrusted data → parsers first; web→native bridge (Electron preload, WebView bridge) → highest. Never label a finding "confirmed" without a concrete trigger path; otherwise **inferred**.
+*Ex: Electron - 12 `ipcMain.handle` plus a custom protocol; preload shows `contextIsolation: false`; the window loads a remote URL → renderer RCE from any XSS.*
+
+### COMPARE - diff inventories before code
+
+1. **METADATA**: `go version -m` both, or the bundle's `package.json`
+2. **SYMBOLS**: `nm` diff → added/removed functions
+3. **STRINGS**: `strings | sort` diff → new UI, errors, URLs
+4. **CODE**: disassemble only the changed functions
+
+By gap: patch → steps 2+4, ignore the unchanged 99%; major → all four, expect architecture changes; hunting a fix → step 3 for new error strings, then step 4 for added validation.
+*Ex: +`exportPDF`, +`handlePrint`, new "Export to PDF" strings, and `exportPDF` shells out to wkhtmltopdf → one feature added, 500 other functions untouched.*
+
+### EXTRACT - metadata, zero code
+
+One shot: Go `go version -m T`; Rust `cargo audit bin T` or the `/rustc/` hash; .NET `ilspycmd --version`; JS `jq .dependencies`; native `otool -L` plus `strings | rg version`; APK `aapt dump badging a.apk`.
+**STOP.** No disassembly, ever.
+
+## Router: fastest path per target
+
+| Target (detect) | Fastest path |
+|---|---|
+| Electron (`*.app/Contents/Resources/app.asar`) | `npx -y @electron/asar extract app.asar X`; entry `jq .main X/package.json`; `.node` addons in `app.asar.unpacked/`. Surface scan: see first move. Wrapped channels hide: `rg -uu -o '"[a-z]+:[a-z0-9:-]+"' X/<main> \| sort -u`. Fuses: `npx -y @electron/fuses read --app A.app`. |
+| Web bundle / minified JS | Find `sourceMappingURL`; if the map has `sourcesContent`, dump sources with `jq -r '.sources[]'`. Webpack: grep module ids, slice around the hit. Pretty-print: `npx -y prettier --parser babel F > F.pretty.js`. |
+| Hermes / bytenode / V8 snapshot | Hermes magic `c6 1f bc 03` (`index.android.bundle`): `hermes-dec` / `hbc-decompiler`. `.jsc` (bytenode) cannot be decompiled - strings plus runtime hooks. |
+| Mach-O | `lipo -info` (thin first: `lipo -thin arm64 -o T1 T`), `otool -L`, `xcrun dyld_info -exports -imports`, `nm -gU` (exports) / `nm -u` (imports = capability map), `strings -a -n 6`, `otool -l \| rg -A3 'LC_(RPATH\|BUILD_VERSION)'`, `codesign -d --entitlements :- T`, `otool -ov` (ObjC classes), `xcrun swift-demangle --compact`. |
+| Native code logic | `otool -tV T > $D/dis.txt` (or `llvm-objdump -d --no-show-raw-insn -C`). Find the function: `rg -n '^_?.*Name.*:$'`. Read the call/string trail: `awk '/^FUNC:/{p=1} p&&/^[_a-zA-Z].*:$/&&!/FUNC/{exit} p' dis.txt \| rg 'bl\|call\|literal\|cmp'`. For pseudocode: Ghidra `analyzeHeadless $D p -import T -postScript DecompileAll.java -deleteProject` or `r2 -qc 'aaa; pdc @ sym.X' T`. |
+| ELF / PE | `readelf -hlSW`, `readelf -dW` (NEEDED), `nm -D --defined-only`, `objdump -d -M intel`; PE `objdump -x`, `pefile`/`wrestool` for resources; `pwn checksec`. |
+| Go (`__go_buildinfo`, `.go.buildinfo`) | `go version -m T` → toolchain, path, mod, deps, build flags in one call. Without Go: `strings -a T \| rg -m1 -A200 'Go buildinf'`. Symbols survive stripping: `go tool nm T \| rg main\.`. |
+| Rust | Deps (cargo-auditable): `cargo audit bin T`, or extract `.dep-v0` / `__DATA,.dep-v0` and zlib-inflate it. Compiler: `strings -a T \| rg -o '/rustc/[0-9a-f]{40}' \| sort -u`. Crates from paths: `strings -a T \| rg -o '[a-z0-9_-]+-[0-9]+\.[0-9]+\.[0-9]+/src' \| sort -u`. |
+| .NET (Mono/.Net) | `ilspycmd -p -o X T.dll`, then `rg`; P/Invoke: `rg DllImport X`. NativeAOT/IL2CPP are native - use the native rows. |
+| Android APK | `jadx -d X --show-bad-code a.apk`, then `rg`. Manifest/resources only: `apktool d --no-src -o X a.apk`. Quick look: `unzip -l a.apk`. `lib/*/libflutter.so` → Flutter (`blutter`); `libhermes.so` → React Native (Hermes row). |
+| Flutter snapshot hash | In `libapp.so`, magic `f5 f5 dc dc`; the 32 hex chars at +20 are the snapshot hash - map it to a Dart version. |
+| WASM | `wasm-objdump -x`, `wasm2wat`, `wasm-decompile` (WABT). |
+| SQLite | Copy the db plus its `-wal`. `sqlite3 'file:C?mode=ro' '.schema'`, then `SELECT * FROM t LIMIT 20`. |
+| plist / nib / car | `plutil -p F`; Info.plist holds bundle id, URL schemes, privacy strings; `assetutil --info Assets.car`. |
+| pcap / HAR | `tshark -r C -q -z conv,tcp`; `tshark -r C -T fields -e dns.qry.name -e tls.handshake.extensions_server_name -e http.request.full_uri \| sort -u`; HAR `jq -r '.log.entries[].request \| .method+" "+.url'`. |
+| Firmware | `binwalk -e F` or `unblob -e X F`, then route each extracted binary back through this table. |
+| Website | `curl -sL URL` for HTML and script srcs, fetch the JS and slice it. Runtime: headless browser with a network log (Playwright `page.on('request')`) or Chrome `--remote-debugging-port`. |
+| Running app / runtime | macOS `lldb -p PID`, `dtrace`/`fs_usage`/`log stream --predicate 'process=="X"'`; Electron main `--inspect` (only if the RunAsNode/inspect fuses allow); Android `adb logcat`, `frida -U -f pkg -l hook.js`. |
+
+## First move: one batched call
+
+Native (Mach-O):
+```sh
+T=./bin; D=$TMPDIR/re/$(basename $T); mkdir -p $D; file $T; lipo -info $T; otool -L $T; echo '--- EXPORTS'; nm -gU $T | head -150; echo '--- IMPORTS'; nm -u $T | rg -v '^__Z|napi_' | tr '\n' ' '; echo; echo '--- STRINGS'; strings -a -n 6 $T | rg -v '^[_$.]' | head -400; otool -tV $T > $D/dis.txt; echo '--- FUNCS'; rg '^[_a-zA-Z].*:$' $D/dis.txt | rg -v '^_?_?Z?N?St3' | head -150
 ```
-Step 2: grep crash log → null deref in loadPreferences
-Step 3: read loadPreferences → accesses self->prefsCache without check
-Step 4: when init? → grep constructor → only set in viewDidLoad IF logged in
-ROOT CAUSE: prefsCache uninitialized for logged-out users
+Then read one function: `awk '/^FUNC_LABEL:$/{p=1;next} p&&/^[_a-zA-Z].*:$/{exit} p' $D/dis.txt | rg 'bl|b\.|cmp|literal|mov\s+w2'`.
+
+Electron:
+```sh
+A=./app.asar; X=$TMPDIR/re/asar; rm -rf $X; npx -y @electron/asar extract $A $X && jq '{name,version,main}' $X/package.json; find $X -path '*/node_modules' -prune -o -type f \( -name '*.js' -o -name '*.node' \) -print | head -60; ls ${A}.unpacked/node_modules 2>/dev/null; rg -uu -l --glob '!node_modules' 'exposeInMainWorld' $X
 ```
+Surface scan: `rg -n -o '.{0,120}(ipcMain\.(handle|handleOnce|on|once)|ipcRenderer\.(invoke|send|sendSync|on)|contextBridge\.exposeIn(Main|Isolated)World|webPreferences|preload:|nodeIntegration|contextIsolation|sandbox|\.node\b).{0,160}' -uu $X --glob '!node_modules'`. Then slice the needle across the bundle: `rg -uu -o --glob '!node_modules' '.{0,250}NEEDLE.{0,250}' $X | head -20`.
 
-### REBUILD: Black-box contract, not internals
+Go: `go version -m T` alone usually answers the question.
 
-**Strategy:**
-1. **API SURFACE** (1 call): UI/network/IPC inspection → input/output shapes
-2. **BEHAVIOR MATRIX** (manual): Test edge cases → truth table
-3. **SELECTIVE PEEK** (1-2 calls, only if opaque): Grep algo name or check imports
-4. **IMPLEMENT + VERIFY**: Write yours, test parity
+## Speed patterns
 
-**When to go deeper:**
-- Simple CRUD/REST? → Steps 1-2 sufficient, write your own SQL/queries
-- Complex algorithm? → Step 3 identifies algo name, then research algo separately (not their code)
-- Proprietary protocol/encryption? → Step 3 must reverse deeper (packet inspection, maybe disassembly)
+- Strings and imports first: on a small binary, `nm -u` + `strings` + the export list answer "what does it do" without disassembly.
+- Who uses a string: get its address from the `otool -tV` "literal pool for" comment, or `rg -n 'literal pool for: "X'`, then find the enclosing function label above that line.
+- A C++ name in a `bl` target already tells you the protocol (`getpeereid`, `write`, `std::hash`). Read the call sequence, not every instruction.
+- JS: work from the native/JS boundary inward - native call, caller class, IPC registration, then renderer/preload.
+- Comparing versions: diff inventories (`nm`, module list, `go version -m`) before diffing any code.
+- Rebuilding: minimal reimplementation, then test it against the original with the same inputs.
 
-**Example:** Clone Slack emoji picker
-```
-Step 1: Click picker → network shows GET /emoji.list → returns {emojis: [{name, url}]}
-Step 2: Type ":smi" → filters to matches. Test: prefix or fuzzy? → Prefix only confirmed
-Step 3: Check custom emoji → same endpoint, category field differentiates
-Step 4: Implement: fetch JSON, prefix-filter, render grid → test against Slack → matches
-STOP: We replicated behavior. Don't need their React implementation.
-```
+## Escalation (first that applies)
 
-### SECURITY: Perimeter → boundaries → impact
+- Minified JS → `sourceMappingURL` → `jq .sourcesContent`; else `npx -y prettier --parser babel`.
+- Stripped native → `nm -u`, `otool -L`, `go version -m`, `strings` still work; then Ghidra auto-analysis before reading by hand.
+- Packed/encrypted binary → identify the packer (die/BinInfo), dump memory after unpacking via lldb/frida.
+- Obfuscated strings → find the decrypt routine, break there, dump the decrypted values.
+- Static exhausted → dynamic (`lldb`, `frida`, `dtrace`, `--remote-debugging-port`).
+- Disassembly unreadable → decompiler (Ghidra/IDA/r2 `pdc`).
 
-**Strategy:**
-1. **SURFACE MAP** (1-2 calls): Grep network/IPC/file/subprocess/eval → entry points
-2. **TRUST BOUNDARIES** (1 call): Trace entries to usage → check validation
-3. **CAPABILITY** (1 call): Check entitlements/permissions/dangerous APIs → impact scope
-4. **PATTERN SCAN** (1-2 calls, if risks found): Read vulnerable paths for SQLi/XSS/overflow/etc
+## Safety and scope
 
-**Priority targets:**
-- Sandboxed app? → Check entitlements FIRST (no network/fs = limited blast radius)
-- Parses untrusted data? → Focus parsers (JSON/XML/image/etc are vuln-prone)
-- Web→native bridge? → HIGH PRIORITY (Electron/WebView contextBridge/preload)
-
-**Example:** Electron app security audit
-```
-Step 1: rg 'ipcMain.handle' → 12 handlers, rg 'protocol.register' → 1 custom protocol
-Step 2: Check preload for contextIsolation → FALSE (renderer has full Node.js)
-Step 3: Check webPreferences → allowRunningInsecureContent + loads remote URL
-Step 4: Analysis: renderer + remote content + no isolation = RCE from any XSS
-STOP: Critical finding documented. Full handler audit now lower priority.
-```
-
-### COMPARE: Diff inventories, not code
-
-**Strategy:**
-1. **METADATA** (1 call): strings diff or `go version -m` diff → dep changes
-2. **SYMBOLS** (1 call): nm diff → added/removed functions
-3. **STRINGS** (1 call): strings diff → new UI/errors/URLs
-4. **CODE** (1-2 calls, only for interesting symbols): Disasm changed funcs only
-
-**Depth by version gap:**
-- Patch (1.0.1→1.0.2)? → Steps 2+4 only (symbols + changed funcs). Ignore unchanged 99%.
-- Major (1.x→2.x)? → All steps. Expect architectural changes.
-- Looking for bug fixes? → Step 3 for new error strings, Step 4 for added validation.
-
-**Example:** What's new in v2.5 vs v2.4?
-```
-Step 1: go version -m both → deps unchanged
-Step 2: nm both, diff -u → shows +exportPDF, +handlePrint, +renderPDFPage
-Step 3: strings both, diff -u → "Export to PDF", "Print Preview", new menu items
-Step 4: Disassemble exportPDF only → calls wkhtmltopdf subprocess
-CONCLUSION: Added PDF export via wkhtmltopdf. Other 500+ functions untouched.
-```
-
-### EXTRACT: Metadata only, zero code
-
-**One-shot:** Go: `go version -m`. Rust: `strings | rg '/rustc/'`. .NET: `ilspycmd --version`. JS: `jq .dependencies`. Native: `otool -L` + `strings | rg version`.  
-**STOP immediately.** No disassembly ever.
-
----
-
-## Tactical rules
-
-**Stop when:**
-- Question answered (don't dig for completeness)
-- Boundary hit (e.g., "calls closed-source lib X" is valid answer)
-- 3+ calls with no progress (wrong layer, re-route)
-
-**Go deeper when:**
-- Answer incomplete (found handler, not implementation)
-- Obfuscation blocks (minified/stripped/encrypted)
-- User explicitly asks
-
-**Switch tools:**
-- Strings/symbols exhausted → disassembly
-- Disassembly unreadable → decompiler (Ghidra/IDA)
-- Static stuck → dynamic (lldb/frida/dtrace)
-
-**Obfuscation escalation** (first that applies):
-- Minified JS → sourceMappingURL → `jq .sourcesContent`; else `npx prettier --parser babel` (never cat minified)
-- Stripped native → what's left is still readable: `nm -u`, `otool -L`, `go version -m`, `strings`; then Ghidra auto-analysis before manual reading
-- Packed/encrypted binary → identify packer (die/BinInfo) → dump memory after unpacking via lldb/frida
-- Obfuscated strings → find the decrypt routine, break there, dump decrypted values
-
-**Safety & scope:**
-- SECURITY on software you don't own → confirm authorization first (ask once); unclear scope → passive static analysis only, no exploitation attempts
-- Dynamic analysis on copies only (VM/snapshot/throwaway container): never execute an untrusted binary on the host, never attach a debugger to a production process
-- REBUILD stays black-box: reimplement behavior; never copy code, assets, strings or product names. The selective peek names an algorithm to research - it is not code to transplant
-- L4 (disassembly/decompile) costs ~10× L1-L3 → confirm with the user before going there unless they explicitly asked for depth
-
-**Efficiency (from leanrea):**
-- Work on copy (`cp -c` instant on APFS)
-- Route by `file` + magic first
-- Never `cat` minified (slice with `rg -o`)
-- Batch probes (one shell call with `;` markers)
-- `rg -uu` for extracted trees (bundlers hide in dot-folders)
-- Mark claims: **seen** (cite) / **inferred** (explain) / **unknown** (honest)
-- Dump disassembly once, then grep
-
-**Tools & speed patterns:** See leanrea skill (load together with ripREA).
-
-**Quick tool reference if leanrea unavailable:**
-- **Electron**: `npx -y @electron/asar extract app.asar X` → `rg -uu 'ipcMain|ipcRenderer|contextBridge' X`
-- **Native (Mach-O)**: `nm -gU T` (exports), `nm -u T` (imports), `otool -tV T > dis.txt`, `strings -a T`
-- **Go**: `go version -m T` (all metadata in one shot)
-- **Rust**: `cargo audit bin T` or `strings | rg '/rustc/'`
-- **Android**: `jadx -d X a.apk` → `rg`
-- **.NET**: `ilspycmd -p -o X T.dll`
-- **Web/JS**: Find sourceMappingURL, `jq .sourcesContent` or `npx prettier --parser babel`
-- **Disasm**: `otool -tV` (macOS), `objdump -d -M intel` (Linux), then `rg` the output
-- **Dynamic**: `lldb -p PID`, `frida`, `dtrace`, Chrome `--remote-debugging-port`
-
-Full tool router + speed patterns in leanrea. Use together for best results.
-
----
+- SECURITY work on software the user does not own → confirm authorization once; unclear scope → passive static analysis only, no exploitation attempts.
+- Dynamic analysis on copies only (VM, snapshot, throwaway container). Never execute an untrusted binary on the host; never attach to a production process.
+- REBUILD stays black-box: reimplement behavior; never copy code, assets, strings or product names. A selective peek names an algorithm to research - it is not code to transplant.
+- L4 needs the user's go-ahead unless they asked for that depth.
 
 ## Meta-rule
 
-If goal doesn't match taxonomy or strategy doesn't fit, **reason out loud:**
-1. What's the actual question?
-2. Minimum info needed?
-3. Fastest tool?
-4. When am I done?
+If the goal fits no strategy or the plan does not survive contact, say so and reason out loud: what is the actual question, what is the minimum evidence, which tool is fastest, how will I know I am done? Then run it. This is a guide, not a constraint.
 
-Then execute. This is a guide, not a constraint.
+## Install (on request)
+
+`brew install jadx apktool radare2 binwalk wabt wireshark ghidra` · `npm i -g @electron/asar` · `dotnet tool install -g ilspycmd` · `cargo install cargo-audit`.

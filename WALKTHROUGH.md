@@ -2,7 +2,7 @@
 
 A reproducible, real run of the ripREA decision layer - no composites, no estimates. Every command below was executed on **2026-10-23** (Linux 6.1.102, x86_64); outputs are trimmed copies of the actual output, and the timings come from `date +%s%N` around each command (single run).
 
-The before/after scenarios in [COMPARISON.md](COMPARISON.md) and [EXAMPLES.md](EXAMPLES.md) are illustrative composites. **This file is the measured one.**
+The before/after scenarios in [VALUE.md](VALUE.md) and [EXAMPLES.md](EXAMPLES.md) are illustrative composites. **This file is the measured one.**
 
 ## Setup 1: gh CLI
 
@@ -296,6 +296,6 @@ Also seen:
 Honesty notes:
 
 - Single measured run of the **ripREA-routed path** (setup/download excluded), timings via `date +%s%N`, Linux x86_64. Your disk and `strings` speed will differ.
-- There is **no measured "without ripREA" baseline here**: the before/after numbers in COMPARISON.md and EXAMPLES.md are illustrative composites, and this file does not pretend otherwise. What *is* measured is which steps the strategy skipped - Task 3 never ran the metadata or full-strings diffs and never reached L4 - and how much output the kept steps produced.
+- There is **no measured "without ripREA" baseline here**: the before/after numbers in VALUE.md and EXAMPLES.md are illustrative composites, and this file does not pretend otherwise. What *is* measured is which steps the strategy skipped - Task 3 never ran the metadata or full-strings diffs and never reached L4 - and how much output the kept steps produced.
 - Tasks 1-3 count unbatched commands so each timing stays attributable; Task 4 counts the batched shell calls it actually used (probe count in parentheses), per the skill's batch-probes rule.
 - Task 4 was static-only: the Joplin binary was never executed (the skill's own safety rule). Its 201 MB download and AppImage extraction were not timed; `asar list`/`extract` (3.0 s + 3.4 s) count as setup. Two of the six analysis batches returned no matches (wrong globs) and were re-routed - they are inside the 1.3 s, not hidden.

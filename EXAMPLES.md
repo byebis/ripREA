@@ -325,14 +325,14 @@ STOP: Metadata extraction complete. No code reading needed.
 
 ### Time savings
 Investigation phase with ripREA across these six examples: **5 s - 3 min** (Example 4's ~10 min includes writing the clone)  
-Without strategy: **5-15 min** in the composite before/after blocks of [COMPARISON.md](COMPARISON.md) and [VALUE.md](VALUE.md)  
+Without strategy: **5-15 min** in the composite before/after arithmetic of [VALUE.md](VALUE.md)  
 **Nature of these numbers:** illustrative, derived from each scenario above - not measured. The measured run with committed timings: [WALKTHROUGH.md](WALKTHROUGH.md)
 
 ### The ripREA advantage
 
 Not faster tools—**smarter routing**.
 
-The tools are the same (from leanrea). ripREA just tells you:
+The tools come from the router that ships inside the skill. ripREA tells you:
 1. Which tool for this goal
 2. How deep to go
 3. When to stop

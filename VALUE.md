@@ -2,9 +2,11 @@
 
 ## The Core Problem
 
-leanrea solves **"which tool?"** by providing a comprehensive catalog of RE tools and commands.
+A comprehensive catalog of RE tools and commands answers **"which tool?"**.
 
-But it doesn't solve **"when?"** and **"how deep?"**
+It does not answer **"when?"** or **"how deep?"** - and a catalog read without those picks a depth by accident, which is exactly where the tokens go.
+
+ripREA ships all three in one file: the catalog, the routing that chooses a depth, and the stop conditions that end the investigation.
 
 ### Real agent behavior without strategy
 
@@ -143,24 +145,21 @@ Result: ✓ Found cause efficiently
 
 ## The Size Budget
 
-Measured 2026-10-23 (`wc -c -w -l` + tiktoken cl100k):
+Measured 2026-11-05 (`wc -c -w -l` + tiktoken cl100k):
 
 ```
-leanrea:  8374 B  (1294 words,  66 lines, ~2656 tokens)
-ripREA:   10933 B (1637 words, 214 lines, ~2831 tokens)
-both:     19307 B (2931 words, 280 lines, ~5487 tokens)
+SKILL.md:            15038 B  (2327 words, 167 lines, ~4281 tokens)
 ```
 
-**What ripREA buys with ~2.8k tokens:**
-- 6 goal type strategies, each with a depth ladder and stop conditions
+**What the unified file carries for ~4.3k tokens:**
+- 6 goal type strategies, each with branch logic, stop conditions and one worked example
 - Report contract: deliverable per goal, claims marked seen/inferred/unknown
-- Branch logic for common scenarios
+- The complete tool router (18 targets) and first-move one-liners, in the same file
 - Safety & scope rules (authorization check, sandboxed dynamic analysis, clean-room rebuild, L4 budget confirmation)
-- Obfuscation escalation ladder
-- Quick tool reference (fallback when leanrea is absent)
+- Obfuscation escalation ladder and speed patterns
 - Meta-adaptation guidance
 
-**Cost when used as recommended (both skills): ~5.5k tokens, about 2.1× leanrea alone.** ripREA is not free - it is cheap relative to one avoided over-investigation: reading 7000 lines of code costs tens of thousands of tokens, an order of magnitude more than the strategy that prevents it.
+**Cost: ~4.3k tokens for the catalog, the routing and the stop conditions together.** It is not free - it is cheap relative to one avoided over-investigation: reading 7000 lines of code costs tens of thousands of tokens, an order of magnitude more than the routing that prevents it.
 
 ---
 
@@ -187,7 +186,7 @@ both:     19307 B (2931 words, 280 lines, ~5487 tokens)
 ### Lower Impact Scenarios
 
 1. **Precise tool requests**
-   - "Extract this asar" → leanrea already optimal
+   - "Extract this asar" → the router answers it in one call
    - ripREA: Adds nothing (tool choice is obvious)
 
 2. **Expert users**
@@ -202,11 +201,11 @@ both:     19307 B (2931 words, 280 lines, ~5487 tokens)
 
 ## The Mental Model Shift
 
-### leanrea's mental model
+### Tool-first mental model
 ```
 User question
     ↓
-Agent: "I'll use tools from leanrea"
+Agent: "Which tool looks right for this?"
     ↓
 Picks tools (implicitly chooses depth)
     ↓
@@ -250,35 +249,26 @@ Report results
 
 ---
 
-## Recommendation: Use Both
+## Recommendation: One Skill
 
 ```sh
-npx skills add aicodeking/leanrea    # Tool catalog
-npx skills add byebis/ripREA         # Strategic layer
+npx skills add byebis/ripREA    # router + strategy
 ```
 
-**Division of labor:**
-- **leanrea** = Comprehensive tool reference + speed patterns
-- **ripREA** = Goal routing + depth strategy + stop conditions
-
-Together: **Complete RE decision framework**
-
-Alone:
-- leanrea: Great tools, no strategy (agent guesses)
-- ripREA: Clear strategy, limited tools (quick ref only)
+**Nothing else to load:** the catalog and the routing that makes it actionable are the same file.
 
 ---
 
 ## The Bottom Line
 
-**~2.8k tokens of strategy. Measured value. No bloat.**
+**~4.3k tokens: full tool router plus routing. One file, no bloat.**
 
-ripREA adds strategic guidance without much bloat by:
+ripREA keeps that budget by:
 1. Identifying what actually matters (goal → depth → stop)
-2. Removing duplication (tool catalog stays in leanrea)
+2. Removing duplication - each command, rule and example appears once
 3. Optimizing format (tables and examples, not prose)
 4. Keeping the price honest: sizes and token counts above are measured, and the measured run lives in [WALKTHROUGH.md](WALKTHROUGH.md)
 
-The result: **A decision layer that makes leanrea's tools actionable in ambiguous scenarios.**
+The result: **a single skill that knows both the command and the moment to stop.**
 
 That's why ripREA exists.

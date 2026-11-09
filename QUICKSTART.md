@@ -5,14 +5,14 @@ Get started with ripREA in 60 seconds.
 ## Installation
 
 ```sh
-# Recommended: Install both
-npx skills add aicodeking/leanrea    # Tools
-npx skills add byebis/ripREA         # Strategy
+npx skills add byebis/ripREA
 
 # Or manual
 git clone https://github.com/byebis/ripREA
 mkdir -p ~/.claude/skills && cp -R ripREA ~/.claude/skills/
 ```
+
+One skill, one install: the file carries both the strategy layer and the full tool router. No companion skill needed.
 
 ## Basic Usage
 
@@ -107,7 +107,7 @@ Know when to stop:
 3. ✓ 3+ attempts, no progress (re-route)
 
 ### Efficiency Rules
-From leanrea, still apply:
+Apply these in every strategy:
 
 - Work on copy (`cp -c`)
 - Batch probes (one shell call with `;`)
@@ -146,8 +146,8 @@ From leanrea, still apply:
 ### 2. Let agent stop early
 Don't push for more depth if answer is complete.
 
-### 3. Use with leanrea
-ripREA strategy + leanrea tools = best results
+### 3. Only this skill
+Everything is in `SKILL.md` - router, strategies, stop conditions. Nothing else needs loading.
 
 ### 4. Trust the boundaries
 "It calls library X" is a valid answer. Don't force deeper.
@@ -183,7 +183,7 @@ ripREA strategy + leanrea tools = best results
 
 - Read [WALKTHROUGH.md](WALKTHROUGH.md) for a measured, reproducible run on real binaries (gh CLI + Joplin)
 - Read [EXAMPLES.md](EXAMPLES.md) for detailed walkthroughs
-- See [COMPARISON.md](COMPARISON.md) for before/after analysis  
+- See [VALUE.md](VALUE.md) for the cost/benefit analysis  
 - Check [VALUE.md](VALUE.md) for understanding the benefits
 - Reference [SKILL.md](SKILL.md) for complete strategy guide
 

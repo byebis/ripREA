@@ -1,167 +1,104 @@
 # ripREA
 
-**Context-aware reverse engineering: the right tool at the right depth at the right time.**
+**One skill for reverse engineering: the fastest technique per target, plus the decisions that keep the investigation cheap.**
 
-ripREA extends [leanrea](https://github.com/aicodeking/leanrea) with strategic guidance: goal routing, depth ladders, stop conditions, a report contract and safety rails - **~2.8k tokens** on top of leanrea's ~2.7k (**~5.5k combined**, measured; see [COMPARISON.md](COMPARISON.md)). It answers the question leanrea doesn't: **"When do I use which technique?"**
+A single `SKILL.md` answers both questions an agent actually faces - **"which command?"** and **"when do I stop?"** - in ~4.3k tokens: one install, one file, no stack of skills to load.
 
-## The problem with leanrea
+## Why one file
 
-leanrea is fast and efficient, but it's a **tool catalog**. It tells you *how* to use `otool` or `jadx`, but not *when* to stop reading strings and start disassembling, or *whether* you need disassembly at all.
+A tool catalog without decisions produces two failure modes:
 
-Result: agents over-investigate or under-investigate. They either:
-- Read every symbol when a single `strings` grep would answer the question (wasted time)
-- Give up at the surface when one more layer would reveal the answer (incomplete)
+- **Over-investigation:** read every symbol when one `strings` grep would answer
+- **Under-investigation:** give up at the surface when one more layer holds the answer
 
-## What ripREA adds
+A strategy layer without tools produces a third: the agent knows it should trace a boundary, but not the command that reaches it.
 
-### 1. Goal-first routing
-Before touching tools, identify what you're actually trying to do:
-- **FEATURE** - How does X work? (trace data flow)
-- **DEBUG** - Why does X fail? (find divergence)
-- **REBUILD** - Clone X (black-box behavior)
-- **SECURITY** - What are X's risks? (attack surface)
-- **COMPARE** - What changed? (diff only)
-- **EXTRACT** - Versions? (metadata only)
+Written as separate documents, the catalog and the strategy have to agree by hand: the steps guess at commands, the catalog knows nothing about depth, and shared rules get repeated until they diverge. Here every strategy step names the router row or the command that executes it, and shared rules appear once.
 
-Each goal type has a different **investigation strategy** and **stop condition**.
+## What's inside
 
-### 2. Progressive depth ladders
-For each goal type, a clear progression:
+1. **Goal-first routing** - before touching a tool, fix the goal and its deliverable:
+
+| Goal | Question | Deliverable | Stop when |
+|---|---|---|---|
+| FEATURE | How does X work? | Flow trace UI/API → effect, cited | Every hop evidenced |
+| DEBUG | Why does X fail? | Trigger → root-cause chain, minimal fix | Cause explains the symptom |
+| REBUILD | Clone X | Behavior contract + parity checks | Functional parity |
+| SECURITY | What are the risks? | Findings by severity, each with a trigger path | Threat model done |
+| COMPARE | v1 → v2? | Delta table | Delta documented |
+| EXTRACT | Versions, deps? | Metadata table + command per field | All fields found |
+
+2. **One depth ladder** - L1 surface (strings, exports, imports) → L2 boundaries (component and data-flow map) → L3 logic (implementation) → L4 deep (disassembly, ~10× the cost, needs the user's go-ahead).
+
+3. **Six strategies** - each with steps, branch logic (`crash with stack` / `wrong output` / `silent failure` / `cannot execute`), a stop condition and a worked example.
+
+4. **Router** - the fastest path per target: Electron, web bundles, Hermes/bytenode, Mach-O, native logic, ELF/PE, Go, Rust, .NET, APK, Flutter, WASM, SQLite, plist/asset catalogs, pcap/HAR, firmware, websites, running processes.
+
+5. **First move** - one batched reconnaissance call for Mach-O, Electron and Go, ready to paste.
+
+6. **Speed patterns, escalation, safety** - literal-pool string tracing, import maps, inventory diffs before code diffs; minified → sourcemap, stripped → symbols, packed → memory dump, obfuscated → decrypt routine; authorization, copies only, black-box rebuilds.
+
+7. **Report contract** - every claim marked **seen** (cited) / **inferred** (reasoning stated) / **unknown** (honest), and no SECURITY finding "confirmed" without a trigger path.
+
+## Size, measured
+
+**15 038 B, 2 327 words, 167 lines, 4 281 tokens** (tiktoken cl100k) - the whole tool catalog plus the routing that makes it actionable, in one file.
+
+*Measured 2026-11-05 with `wc -c -w -l` and tiktoken cl100k; reproduce with `python -c "import tiktoken;print(len(tiktoken.get_encoding('cl100k_base').encode(open('SKILL.md').read())))"`. Tokenizers differ slightly by model. CI fails above 17 000 B / 4 800 tokens, so every addition needs a matching cut.*
+
+## Example: same answer, one third of the reading
+
+**Request:** "How does the search feature in Notion work?"
+
 ```
-Level 1: Surface (strings, APIs)        → 10s, 1 call
-Level 2: Boundaries (components, flow)   → 30s, 1-2 calls
-Level 3: Logic (implementation)          → 2-5m, 2-3 calls
-Level 4: Deep (disassembly, decompile)   → only if Levels 1-3 insufficient
-```
-
-**Decision points** at each level tell you when to stop or go deeper.
-
-### 3. Tactical guidance
-- **When to stop:** Answer found, boundary hit, diminishing returns
-- **When to go deeper:** Incomplete answer, obfuscation, explicit user request
-- **When to switch tools:** Static exhausted → dynamic, disassembly unreadable → decompiler
-
-### 4. Anti-patterns prevention
-- ❌ Reading entire disassembly when strings would suffice
-- ❌ Giving up at "it's obfuscated" without trying dynamic analysis
-- ❌ Full code review when only symbols changed
-- ❌ Rebuilding internals when black-box behavior is enough
-
-### 5. Report contract & safety rails
-- Every answer ends with its goal's **deliverable** (flow trace, delta table, threat list...), each claim marked **seen / inferred / unknown**
-- Safety rules: confirm authorization before SECURITY work, run dynamic analysis only on copies in a VM/snapshot, keep REBUILD black-box (never copy code/assets/names), and treat L4 disassembly as ~10× cost that needs user confirmation
-
-## Comparison
-
-|  | leanrea | ripREA |
-|---|---|---|
-| **Tool coverage** | Comprehensive | Quick ref + full via leanrea |
-| **Efficiency** | High (direct tools) | Same |
-| **Strategic guidance** | ❌ Tool catalog only | ✅ Goal → Strategy → Depth |
-| **Decision support** | ❌ Agent must guess | ✅ Explicit when/stop rules |
-| **Context awareness** | ❌ One-size-fits-all | ✅ Tailored by goal type |
-| **Size (measured 2026-10-23)** | 8.2 KB / ~2.7k tokens | 10.7 KB / ~2.8k tokens |
-
-ripREA is **leanrea + a decision layer paid for in context**: loading both (the recommended setup) costs ~5.5k tokens vs ~2.7k for leanrea alone. All tools remain accessible; ripREA adds the **decision logic** that was missing. Reproduce the numbers with `wc -c -w -l SKILL.md` and any tokenizer - see [COMPARISON.md](COMPARISON.md).
-
-## Example: Before and After
-
-**User request:** "How does the search feature in Notion work?"
-
-### Without strategy (typical agent behavior)
-```
-Agent: "I should reverse engineer Notion"
-1. Extract app.asar ✓
-2. Read entire main.js (5000 lines) ✗ wasted
-3. Find 'search' string ✓
-4. Trace to SearchIndex.node ✓
-5. Disassemble SearchIndex.node (2000 lines) ✗ wasted
-6. Report: "Uses native FTS, probably SQLite"
-
-Time: 5+ minutes, 5 calls, ~7000 lines read
+Goal: FEATURE. Ladder: L1 → L2 → L3.
+1. rg 'search'          → 'search:query' IPC channel        (L1, seconds)
+2. handler trace        → SearchIndex class → .node addon   (L2, seconds)
+3. nm SearchIndex.node  → fulltext_search export            (L3, seconds)
+STOP: UI → IPC → native full-text search. Answer cited, no disassembly.
 ```
 
-### With ripREA strategy
-```
-Agent: "Goal: FEATURE. Strategy: Progressive depth L1→L2→L3"
-1. rg 'search' → 'search:query' IPC channel (L1, 10s)
-2. Find handler → traces to SearchIndex class → calls .node (L2, 30s)
-3. nm SearchIndex.node → fulltext_search export (L3, 10s)
-STOP: UI→IPC→native FTS. Answer complete.
-
-Time: <1 minute, 3 calls, ~100 lines read
-```
-
-**Impact (illustrative scenario): same answer, 5× faster, 70× less code read.** The measured, reproducible run - four tasks on real binaries (gh CLI + a Joplin Electron security audit) with committed output and timings - is [WALKTHROUGH.md](WALKTHROUGH.md).
-
-## When to use ripREA vs leanrea
-
-**Use leanrea** if:
-- You already know what layer you need (e.g., "give me the Go dependencies")
-- The task is narrow and tool-specific (e.g., "extract this asar")
-- You're an expert who doesn't need decision guidance
-
-**Use ripREA** if:
-- The goal is ambiguous ("understand how X works")
-- You need to know when to stop investigating
-- You want to avoid over-engineering the investigation
-- You're collaborating with an LLM agent that tends to over-read or under-read
+Without routing, the same agent extracts the asar, reads 5000 lines of `main.js`, finds the string, then disassembles the addon: ~7000 lines read for a trace the ladder reaches in three probes. The measured, reproducible version of that claim - four tasks on real binaries (gh CLI, a Joplin Electron audit) with committed output and timings - is [WALKTHROUGH.md](WALKTHROUGH.md).
 
 ## Install
 
-### Recommended: Use with leanrea
 ```sh
-npx skills add aicodeking/leanrea
 npx skills add byebis/ripREA
 ```
 
-This gives you full tool coverage (leanrea) + strategic layer (ripREA).
+Or manually:
 
-### Standalone (works, but limited tool reference)
 ```sh
 git clone https://github.com/byebis/ripREA
 mkdir -p ~/.claude/skills && cp -R ripREA ~/.claude/skills/
 ```
 
-### Use it
+Then:
+
 ```
 /ripREA How does the export feature in Figma work?
 ```
 
-The agent will:
-1. Identify goal type (FEATURE)
-2. Apply progressive depth strategy (L1→L2→L3)
-3. Stop at appropriate layer (when trace is complete)
-4. Report findings with evidence
-
-**For detailed side-by-side comparisons, see [COMPARISON.md](COMPARISON.md)**
+The agent identifies the goal, climbs the ladder only as far as the deliverable needs, and reports with evidence.
 
 ## Documentation
 
-- **[QUICKSTART.md](QUICKSTART.md)** - Get started in 60 seconds
-- **[SKILL.md](SKILL.md)** - Complete strategy guide (the actual skill file)
+- **[QUICKSTART.md](QUICKSTART.md)** - get started in 60 seconds
+- **[SKILL.md](SKILL.md)** - the skill itself (routing + strategies + tool router)
 - **[EXAMPLES.md](EXAMPLES.md)** - 6 strategy walkthroughs (illustrative)
-- **[WALKTHROUGH.md](WALKTHROUGH.md)** - Measured run on real binaries (gh CLI, Joplin): output, timings, benchmark
-- **[COMPARISON.md](COMPARISON.md)** - Side-by-side: with vs without ripREA
-- **[VALUE.md](VALUE.md)** - Why ripREA exists and when it matters most
+- **[WALKTHROUGH.md](WALKTHROUGH.md)** - measured run on real binaries (gh CLI, Joplin): output, timings, benchmark
+- **[VALUE.md](VALUE.md)** - why the decision layer exists and when it pays off
 
 ## Extending ripREA
 
-ripREA is designed to be extended. To add support for new goal types or domains:
+1. Add the goal type to the routing table in `SKILL.md`
+2. Add its strategy (steps, branches, stop condition, one example)
+3. Add any new target rows to the router
 
-1. Add the goal type to the taxonomy in `SKILL.md`
-2. Define the investigation strategy (phases, decision points, stop condition)
-3. Add domain-specific patterns to the tool router if needed
+Pull requests welcome for new goal types (AUDIT, MIGRATE, OPTIMIZE), domain specializations (IoT firmware, mobile apps, malware) and additional targets.
 
-Pull requests welcome for:
-- New goal types (AUDIT, MIGRATE, OPTIMIZE, etc.)
-- Domain specializations (IoT firmware, mobile apps, malware)
-- Additional tactical patterns
+CI enforces the size budget, so additions need a matching cut or a justified budget bump in `.github/workflows/checks.yml`.
 
 ## License
 
-MIT (same as leanrea)
-
-## Credits
-
-Built on [leanrea](https://github.com/aicodeking/leanrea) by aicodeking. ripREA adds the strategic layer that makes leanrea's tool mastery actionable in ambiguous scenarios.
+MIT.
