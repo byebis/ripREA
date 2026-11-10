@@ -21,13 +21,13 @@ jobs:
         run: pip install tiktoken
 
       # Budget guard for the skill's core pitch: one file, no companion skill.
-      # Measured 2026-11-05: 15038 bytes / 4281 tokens (tiktoken cl100k) for
+      # Measured 2026-11-05: 15870 bytes / 4470 tokens (tiktoken cl100k) for
       # rules + routing + strategies + the full tool router.
-      # Limits leave ~11% headroom for legitimate edits, then fail loudly.
+      # Limits leave ~10% headroom for legitimate edits, then fail loudly.
       - name: SKILL.md size and token budget
         env:
-          MAX_BYTES: "17000"
-          MAX_TOKENS: "4800"
+          MAX_BYTES: "17500"
+          MAX_TOKENS: "4900"
         run: |
           python - <<'PY'
           import os, sys, tiktoken

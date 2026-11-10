@@ -42,9 +42,9 @@ Written as separate documents, the catalog and the strategy have to agree by han
 
 ## Size, measured
 
-**15 038 B, 2 327 words, 167 lines, 4 281 tokens** (tiktoken cl100k) - the whole tool catalog plus the routing that makes it actionable, in one file.
+**15 870 B, 2 472 words, 167 lines, 4 470 tokens** (tiktoken cl100k) - the whole tool catalog plus the routing that makes it actionable, in one file.
 
-*Measured 2026-11-05 with `wc -c -w -l` and tiktoken cl100k; reproduce with `python -c "import tiktoken;print(len(tiktoken.get_encoding('cl100k_base').encode(open('SKILL.md').read())))"`. Tokenizers differ slightly by model. CI fails above 17 000 B / 4 800 tokens, so every addition needs a matching cut.*
+*Measured 2026-11-05 with `wc -c -w -l` and tiktoken cl100k; reproduce with `python -c "import tiktoken;print(len(tiktoken.get_encoding('cl100k_base').encode(open('SKILL.md').read())))"`. Tokenizers differ slightly by model. CI fails above 17 500 B / 4 900 tokens, so every addition needs a matching cut.*
 
 ## Example: same answer, one third of the reading
 

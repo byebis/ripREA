@@ -148,7 +148,7 @@ Result: ✓ Found cause efficiently
 Measured 2026-11-05 (`wc -c -w -l` + tiktoken cl100k):
 
 ```
-SKILL.md:            15038 B  (2327 words, 167 lines, ~4281 tokens)
+SKILL.md:            15870 B  (2472 words, 167 lines, ~4470 tokens)
 ```
 
 **What the unified file carries for ~4.3k tokens:**
