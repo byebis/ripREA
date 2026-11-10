@@ -2,7 +2,7 @@
 
 **One skill for reverse engineering: the fastest technique per target, plus the decisions that keep the investigation cheap.**
 
-A single `SKILL.md` answers both questions an agent actually faces - **"which command?"** and **"when do I stop?"** - in ~4.3k tokens: one install, one file, no stack of skills to load.
+A single `SKILL.md` answers both questions an agent actually faces - **"which command?"** and **"when do I stop?"** - in ~4.9k tokens: one install, one file, no stack of skills to load.
 
 ## Why one file
 
@@ -32,7 +32,7 @@ Written as separate documents, the catalog and the strategy have to agree by han
 
 3. **Six strategies** - each with steps, branch logic (`crash with stack` / `wrong output` / `silent failure` / `cannot execute`), a stop condition and a worked example.
 
-4. **Router** - the fastest path per target: Electron, web bundles, Hermes/bytenode, Mach-O, native logic, ELF/PE, Go, Rust, .NET, APK, Flutter, WASM, SQLite, plist/asset catalogs, pcap/HAR, firmware, websites, running processes.
+4. **Router** - the fastest path per target, 24 rows: Electron (incl. ASAR integrity and fuses), web bundles, Hermes/bytenode, Mach-O, native logic, ELF/PE, Go, Rust, .NET, APK, Flutter, Unity IL2CPP, packaged Python, Node SEA, Java, iOS IPA, macOS pkg and Windows installers, WASM, SQLite, plist/asset catalogs, pcap/HAR, firmware, websites, running processes.
 
 5. **First move** - one batched reconnaissance call for Mach-O, Electron and Go, ready to paste.
 
@@ -42,9 +42,9 @@ Written as separate documents, the catalog and the strategy have to agree by han
 
 ## Size, measured
 
-**15 870 B, 2 472 words, 167 lines, 4 470 tokens** (tiktoken cl100k) - the whole tool catalog plus the routing that makes it actionable, in one file.
+**17 658 B, 2739 words, 173 lines, 4947 tokens** (tiktoken cl100k) - the whole tool catalog plus the routing that makes it actionable, in one file.
 
-*Measured 2026-11-05 with `wc -c -w -l` and tiktoken cl100k; reproduce with `python -c "import tiktoken;print(len(tiktoken.get_encoding('cl100k_base').encode(open('SKILL.md').read())))"`. Tokenizers differ slightly by model. CI fails above 17 500 B / 4 900 tokens, so every addition needs a matching cut.*
+*Measured 2026-11-10 with `wc -c -w -l` and tiktoken cl100k; reproduce with `python -c "import tiktoken;print(len(tiktoken.get_encoding('cl100k_base').encode(open('SKILL.md').read())))"`. Tokenizers differ slightly by model. CI fails above 20000 B / 5500 tokens, so every addition needs a matching cut.*
 
 ## Example: same answer, one third of the reading
 
@@ -58,7 +58,7 @@ Goal: FEATURE. Ladder: L1 → L2 → L3.
 STOP: UI → IPC → native full-text search. Answer cited, no disassembly.
 ```
 
-Without routing, the same agent extracts the asar, reads 5000 lines of `main.js`, finds the string, then disassembles the addon: ~7000 lines read for a trace the ladder reaches in three probes. The measured, reproducible version of that claim - four tasks on real binaries (gh CLI, a Joplin Electron audit) with committed output and timings - is [WALKTHROUGH.md](WALKTHROUGH.md).
+The trace above shows the shape of the answer; it is not a recording. What is recorded is [WALKTHROUGH.md](WALKTHROUGH.md) - four tasks on real binaries (three gh CLI releases and Joplin 3.7.21), with the exact commands, the checksums of the inputs and the timings, so the run can be repeated instead of trusted.
 
 ## Install
 

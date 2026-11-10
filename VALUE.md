@@ -8,7 +8,7 @@ It does not answer **"when?"** or **"how deep?"** - and a catalog read without t
 
 ripREA ships all three in one file: the catalog, the routing that chooses a depth, and the stop conditions that end the investigation.
 
-### Real agent behavior without strategy
+### What a tool-first run looks like (composite)
 
 **Task:** "How does the search feature work?"
 
@@ -139,27 +139,27 @@ Lines examined: ~100
 Result: ✓ Found cause efficiently
 ```
 
-**Impact: 80% fewer turns, 98% less reading, 8× faster**
+**In this composite: 15 turns → 3, ~5000 lines → ~100.** The arithmetic is internally consistent, not measured - [WALKTHROUGH.md](WALKTHROUGH.md) holds the recorded run.
 
 ---
 
 ## The Size Budget
 
-Measured 2026-11-05 (`wc -c -w -l` + tiktoken cl100k):
+Measured 2026-11-10 (`wc -c -w -l` + tiktoken cl100k):
 
 ```
-SKILL.md:            15870 B  (2472 words, 167 lines, ~4470 tokens)
+SKILL.md:            17658 B  (2739 words, 173 lines, ~4947 tokens)
 ```
 
-**What the unified file carries for ~4.3k tokens:**
+**What the file carries for ~4.9k tokens:**
 - 6 goal type strategies, each with branch logic, stop conditions and one worked example
 - Report contract: deliverable per goal, claims marked seen/inferred/unknown
-- The complete tool router (18 targets) and first-move one-liners, in the same file
+- The complete tool router (24 targets) and first-move one-liners, in the same file
 - Safety & scope rules (authorization check, sandboxed dynamic analysis, clean-room rebuild, L4 budget confirmation)
 - Obfuscation escalation ladder and speed patterns
 - Meta-adaptation guidance
 
-**Cost: ~4.3k tokens for the catalog, the routing and the stop conditions together.** It is not free - it is cheap relative to one avoided over-investigation: reading 7000 lines of code costs tens of thousands of tokens, an order of magnitude more than the routing that prevents it.
+**Cost: ~4.9k tokens for the catalog, the routing and the stop conditions together.** It is not free - it is cheap relative to one avoided over-investigation: reading a few thousand lines of code costs tens of thousands of tokens, an order of magnitude more than the routing that prevents it.
 
 ---
 
@@ -261,7 +261,7 @@ npx skills add byebis/ripREA    # router + strategy
 
 ## The Bottom Line
 
-**~4.3k tokens: full tool router plus routing. One file, no bloat.**
+**~4.9k tokens: full tool router plus routing. One file, no bloat.**
 
 ripREA keeps that budget by:
 1. Identifying what actually matters (goal → depth → stop)

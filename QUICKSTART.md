@@ -42,6 +42,8 @@ Remember these when asking questions:
 
 ## Quick Examples
 
+The durations below are typical expectations, not measurements - the recorded run is [WALKTHROUGH.md](WALKTHROUGH.md).
+
 ### Feature Investigation
 ```
 /ripREA How does the export feature work in this Electron app?
@@ -183,8 +185,7 @@ Everything is in `SKILL.md` - router, strategies, stop conditions. Nothing else 
 
 - Read [WALKTHROUGH.md](WALKTHROUGH.md) for a measured, reproducible run on real binaries (gh CLI + Joplin)
 - Read [EXAMPLES.md](EXAMPLES.md) for detailed walkthroughs
-- See [VALUE.md](VALUE.md) for the cost/benefit analysis  
-- Check [VALUE.md](VALUE.md) for understanding the benefits
+- See [VALUE.md](VALUE.md) for the cost/benefit reasoning
 - Reference [SKILL.md](SKILL.md) for complete strategy guide
 
 ## TL;DR
